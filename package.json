@@ -1,0 +1,16 @@
+{
+  "name": "arson",
+  "version": "0.1.0",
+  "description": "ARbitrarily Structured Object Notation",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjamn/arson.git"
+  },
+  "author": "Ben Newman <ben@benjamn.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/benjamn/arson/issues"
+  },
+  "homepage": "https://github.com/benjamn/arson#readme"
+}
