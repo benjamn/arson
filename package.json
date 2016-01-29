@@ -18,6 +18,6 @@
     "debug": "node ./node_modules/mocha/bin/mocha --debug-brk --reporter spec --full-trace"
   },
   "devDependencies": {
-    "mocha": "^2.4.5"
+    "mocha": "~2.4.5"
   }
 }
