@@ -4,7 +4,7 @@
 
 ### *AR*bitrary *S*tructured *O*bject *N*otation
 
-JSON is great until you need to encode an object with circular references:
+[JSON](http://www.json.org/) is great until you need to encode an object with circular references:
 ```js
 var obj = {};
 obj.self = obj;
