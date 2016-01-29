@@ -1,6 +1,6 @@
 {
   "name": "arson",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "ARbitrary Structured Object Notation",
   "main": "index.js",
   "repository": {
