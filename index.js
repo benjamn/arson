@@ -1,3 +1,6 @@
+var UNDEFINED_INDEX = -1;
+var ARRAY_HOLE_INDEX = -2;
+
 function encode(value) {
   return JSON.stringify(tabulate(value));
 }
@@ -8,6 +11,11 @@ function tabulate(value) {
   var indexMap = typeof Map === "function" && new Map;
 
   function getIndex(value) {
+    if (typeof value === "undefined") {
+      // An out-of-bounds array access always returns undefined!
+      return UNDEFINED_INDEX;
+    }
+
     var index;
 
     if (indexMap) {
@@ -31,17 +39,38 @@ function tabulate(value) {
   // Assign the root value to values[0].
   getIndex(value);
 
-  for (var v = 0; v < values.length; ++v) {
-    value = values[v];
+  function copy(value) {
+    var result = value;
 
     if (value && typeof value === "object") {
-      var copy = table[v] = Array.isArray(value) ? [] : {};
-      Object.keys(value).forEach(function (key) {
-        copy[key] = getIndex(value[key]);
+      var keys = Object.keys(value);
+
+      if (Array.isArray(value)) {
+        result = Array(value.length);
+        var len = value.length;
+        if (len > keys.length) {
+          // The array has holes, so make sure we fill them with the
+          // ARRAY_HOLE_INDEX constant.
+          for (var i = 0; i < len; ++i) {
+            result[i] = ARRAY_HOLE_INDEX;
+          }
+        }
+      } else {
+        result = {};
+      }
+
+      keys.forEach(function (key) {
+        result[key] = getIndex(value[key]);
       });
-    } else {
-      table[v] = value;
     }
+
+    return result;
+  }
+
+  // Note that this for loop cannot be a forEach loop, because
+  // values.length is expected to change during iteration.
+  for (var v = 0; v < values.length; ++v) {
+    table[v] = copy(values[v]);
   }
 
   return table;
@@ -53,7 +82,12 @@ function decode(encoding) {
   table.forEach(function (entry) {
     if (entry && typeof entry === "object") {
       Object.keys(entry).forEach(function (key) {
-        entry[key] = table[entry[key]];
+        var index = entry[key];
+        if (index === ARRAY_HOLE_INDEX) {
+          delete entry[key];
+        } else {
+          entry[key] = table[index];
+        }
       });
     }
   });

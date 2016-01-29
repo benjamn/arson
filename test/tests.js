@@ -4,7 +4,7 @@ var arson = require("../index.js");
 describe("encoding and decoding", function () {
   it("should work with primitive values", function () {
     function check(value) {
-      assert.strictEqual(arson.decode(arson.encode(value)), value);
+      assert.deepEqual(value, arson.decode(arson.encode(value)));
     }
 
     check(0);
@@ -14,10 +14,24 @@ describe("encoding and decoding", function () {
     check("asdf");
     check("");
     check(null);
+    check(void 0);
+    check({ foo: void 0 });
 
     // TODO It would be nice if these cases worked:
-    // check(void 0);
     // check(/asdf/);
+  });
+
+  it("should work for sparse arrays", function () {
+    function check(array) {
+      assert.deepEqual(array, arson.decode(arson.encode(array)));
+    }
+
+    check([,]);
+    check([,,]);
+    check([,,,]);
+    check([1,,3]);
+    check([1,,3,,4]);
+    check([1,,3,,4,,]);
   });
 
   it("should work with circular references", function () {
