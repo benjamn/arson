@@ -1,4 +1,5 @@
-# arson, _n_.
+# arson, _n_. [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
+
 > the criminal act of deliberately setting fire to property
 
 ### *AR*bitrary *S*tructured *O*bject *N*otation
