@@ -12,5 +12,12 @@
   "bugs": {
     "url": "https://github.com/benjamn/arson/issues"
   },
-  "homepage": "https://github.com/benjamn/arson#readme"
+  "homepage": "https://github.com/benjamn/arson#readme",
+  "scripts": {
+    "test": "node ./node_modules/mocha/bin/mocha --reporter spec --full-trace",
+    "debug": "node ./node_modules/mocha/bin/mocha --debug-brk --reporter spec --full-trace"
+  },
+  "devDependencies": {
+    "mocha": "^2.4.5"
+  }
 }
