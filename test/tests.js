@@ -49,4 +49,9 @@ describe("encoding and decoding", function () {
     var result = arson.decode(arson.encode(a));
     assert.strictEqual(result.x, result.y);
   });
+
+  it("should work with the global object", function () {
+    var copy = arson.decode(arson.encode(global));
+    assert.strictEqual(copy.global, copy);
+  });
 });
