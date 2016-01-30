@@ -44,6 +44,7 @@ function tabulate(value) {
 
     if (value && typeof value === "object") {
       var keys = Object.keys(value);
+      var ctor = value.constructor;
 
       if (Array.isArray(value)) {
         result = Array(value.length);
@@ -55,6 +56,46 @@ function tabulate(value) {
             result[i] = ARRAY_HOLE_INDEX;
           }
         }
+
+      } else if (ctor &&
+                 ctor.name !== "Object" &&
+                 typeof global[ctor.name] === "function") {
+        var cname = ctor.name;
+
+        // If value is not a plain Object, but something exotic like a
+        // Date or a RegExp, then we serialize it as an array with the
+        // String value.constructor.name as its first element. These
+        // arrays can be distinguished from normal arrays, because all
+        // other non-empty arrays will be serialized with a numeric value
+        // as their first element.
+        result = [cname];
+
+        // Any elements following the first element of the result array
+        // represent arguments that should be passed to the constructor
+        // when the serialized object is deserialized.
+        if (cname === "Date") {
+          // If result is ["Date", '2016-01-30T01:50:19.287Z'], then
+          // arson.decode will deserialize the value by evaluating the
+          // expression new global.Date('2016-01-30T01:50:19.287Z').
+          result.push(value.toJSON());
+
+        } else if (cname === "RegExp") {
+          result.push(value.source);
+
+          var flags = "";
+          if (value.ignoreCase) flags += "i";
+          if (value.multiline) flags += "m";
+          if (value.global) flags += "g";
+          if (flags) {
+            result.push(flags);
+          }
+
+        } else if (cname === "Buffer") {
+          result.push(value.toString("base64"), "base64");
+        }
+
+        return result;
+
       } else {
         result = {};
       }
@@ -78,18 +119,33 @@ function tabulate(value) {
 
 function decode(encoding) {
   var table = JSON.parse(encoding);
+  var objectEntries = [];
 
-  table.forEach(function (entry) {
+  // First pass: make sure all exotic object arrays are deserialized fist,
+  // and keep track of all plain object entries for later.
+  table.forEach(function (entry, index) {
     if (entry && typeof entry === "object") {
-      Object.keys(entry).forEach(function (key) {
-        var index = entry[key];
-        if (index === ARRAY_HOLE_INDEX) {
-          delete entry[key];
-        } else {
-          entry[key] = table[index];
-        }
-      });
+      if (Array.isArray(entry) &&
+          typeof entry[0] === "string") {
+        var ctor = global[entry[0]];
+        entry[0] = null;
+        table[index] = new (ctor.bind.apply(ctor, entry));
+      } else {
+        objectEntries.push(entry);
+      }
     }
+  });
+
+  // Second pass: deserialize all the plain object entries found above.
+  objectEntries.forEach(function (entry) {
+    Object.keys(entry).forEach(function (key) {
+      var index = entry[key];
+      if (index === ARRAY_HOLE_INDEX) {
+        delete entry[key];
+      } else {
+        entry[key] = table[index];
+      }
+    });
   });
 
   return table[0];

@@ -16,9 +16,35 @@ describe("encoding and decoding", function () {
     check(null);
     check(void 0);
     check({ foo: void 0 });
+  });
 
-    // TODO It would be nice if these cases worked:
-    // check(/asdf/);
+  it("should work with exotic object types", function () {
+    var r1 = /asdf/ig;
+    var r2 = arson.decode(arson.encode(r1));
+    assert.ok(r2 instanceof RegExp);
+    assert.strictEqual(r2.source, "asdf");
+    assert.strictEqual(r2.ignoreCase, true);
+    assert.strictEqual(r2.multiline, false);
+    assert.strictEqual(r2.global, true);
+    assert.ok(r2.test("xxx-asdf-yyy"));
+
+    var d1 = new Date;
+    var d2 = arson.decode(arson.encode(d1));
+    assert.ok(d2 instanceof Date);
+    assert.strictEqual(+d1, +d2);
+
+    var dObj = arson.decode(arson.encode({ foo: d1, bar: [d1, d1] }));
+    assert.strictEqual(+d1, +dObj.foo);
+    assert.strictEqual(+d1, +dObj.bar[0]);
+    assert.strictEqual(+d1, +dObj.bar[1]);
+    assert.strictEqual(dObj.foo, dObj.bar[0]);
+    assert.strictEqual(dObj.foo, dObj.bar[1]);
+
+    var b = new Buffer("asdf");
+    var bb = arson.decode(arson.encode([b, b]));
+    assert.strictEqual(bb[0], bb[1]);
+    assert.ok(bb[0] instanceof Buffer);
+    assert.strictEqual(bb[0].toString("utf8"), "asdf");
   });
 
   it("should work for sparse arrays", function () {
