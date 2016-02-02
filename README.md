@@ -1,8 +1,8 @@
 # arson, _n_. [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
 
-> the criminal act of deliberately setting fire to property
-
 ### *AR*bitrary *S*tructured *O*bject *N*otation
+
+_Not to be confused with the criminal act of deliberately setting fire to property!_
 
 [JSON](http://www.json.org/) is great until you need to encode an object with circular references:
 ```js
@@ -38,4 +38,42 @@ var b = { foo: 42 };
 a.x = a.y = b;
 ARSON.stringify(a); // [{"x":1,"y":1},{"foo":2},42] vs.
                     // {"x":{"foo":42},"y":{"foo":42}}
+```
+
+But that's not all! `ARSON` can also encode `undefined`, thanks to the fact that `[][-1]` is always `undefined`:
+```js
+> ARSON.encode({foo:undefined})
+'[{"foo":-1}]'
+> ARSON.decode(_)
+{ foo: undefined }
+```
+
+It can also encode array *holes*:
+```js
+> ARSON.encode(Array(3).concat([4, 5]))
+'[[-2,-2,-2,1,2],4,5]'
+> ARSON.decode(_)
+[ , , , 4, 5 ]
+```
+
+`Buffer`s:
+```js
+> ARSON.encode(new Buffer("asdf"))
+'[["Buffer","YXNkZg==","base64"]]'
+```
+
+`Date`s:
+```js
+> ARSON.encode(new Date)
+'[["Date","2016-02-02T00:25:36.886Z"]]'
+> ARSON.decode(_)
+Mon Feb 01 2016 19:25:36 GMT-0500 (EST)
+```
+
+and `RegExp`s:
+```js
+> ARSON.encode(/asdf/img)
+'[["RegExp","asdf","img"]]'
+> ARSON.decode(_)
+/asdf/gim
 ```
