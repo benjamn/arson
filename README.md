@@ -60,6 +60,8 @@ It can also encode array *holes*:
 ```js
 > ARSON.encode(new Buffer("asdf"))
 '[["Buffer","YXNkZg==","base64"]]'
+> ARSON.decode(_)
+<Buffer 61 73 64 66>
 ```
 
 `Date`s:
