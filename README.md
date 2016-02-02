@@ -1,4 +1,4 @@
-# arson, _n_. [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
+# arson [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
 
 ### *AR*bitrary *S*tructured *O*bject *N*otation
 
