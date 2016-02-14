@@ -1,5 +1,8 @@
 var UNDEFINED_INDEX = -1;
 var ARRAY_HOLE_INDEX = -2;
+var NAN_INDEX = -3;
+var POS_INF_INDEX = -4;
+var NEG_INF_INDEX = -5;
 
 function encode(value) {
   return JSON.stringify(tabulate(value));
@@ -7,13 +10,23 @@ function encode(value) {
 
 function tabulate(value) {
   var values = [];
-  var table = [];
   var indexMap = typeof Map === "function" && new Map;
 
   function getIndex(value) {
-    if (typeof value === "undefined") {
-      // An out-of-bounds array access always returns undefined!
+    switch (typeof value) {
+    case "undefined":
       return UNDEFINED_INDEX;
+
+    case "number":
+      if (isNaN(value)) {
+        return NAN_INDEX;
+      }
+
+      if (! isFinite(value)) {
+        return value < 0 ? NEG_INF_INDEX : POS_INF_INDEX;
+      }
+
+      // fall through...
     }
 
     var index;
@@ -35,9 +48,6 @@ function tabulate(value) {
 
     return index;
   }
-
-  // Assign the root value to values[0].
-  getIndex(value);
 
   function copy(value) {
     var result = value;
@@ -108,9 +118,19 @@ function tabulate(value) {
     return result;
   }
 
+  // Assigns the root value to values[0].
+  var index0 = getIndex(value);
+  if (index0 < 0) {
+    // If value is something special that gets a negative index, then we
+    // don't need to build a table at all, and we can simply return that
+    // negative index as a complete serialization. This avoids ambiguity
+    // about indexes versus primitive literal values.
+    return index0;
+  }
+
   // Note that this for loop cannot be a forEach loop, because
   // values.length is expected to change during iteration.
-  for (var v = 0; v < values.length; ++v) {
+  for (var table = [], v = 0; v < values.length; ++v) {
     table[v] = copy(values[v]);
   }
 
@@ -119,6 +139,10 @@ function tabulate(value) {
 
 function decode(encoding) {
   var table = JSON.parse(encoding);
+  if (typeof table === "number" && table < 0) {
+    return handleEntry([table])[0];
+  }
+
   var objectEntries = [];
 
   // First pass: make sure all exotic object arrays are deserialized fist,
@@ -133,22 +157,52 @@ function decode(encoding) {
       } else {
         objectEntries.push(entry);
       }
+
+      // Will be deserialized in the next loop.
+      objectEntries.push(entry);
     }
   });
 
   // Second pass: deserialize all the plain object entries found above.
-  objectEntries.forEach(function (entry) {
-    Object.keys(entry).forEach(function (key) {
-      var index = entry[key];
-      if (index === ARRAY_HOLE_INDEX) {
-        delete entry[key];
-      } else {
-        entry[key] = table[index];
-      }
-    });
-  });
+  objectEntries.forEach(handleEntry, table);
 
   return table[0];
+}
+
+function handleEntry(entry) {
+  var table = this;
+
+  Object.keys(entry).forEach(function (key) {
+    var index = entry[key];
+
+    if (typeof index !== "number") {
+      // Leave non-numeric indexes untouched.
+      return;
+    }
+
+    // Negative indexes have special meaning, but UNDEFINED_INDEX can be
+    // handled the same as non-negative indexes, because table[-1] is
+    // always undefined.
+    if (index < -1) {
+      if (index === ARRAY_HOLE_INDEX) {
+        delete entry[key];
+      } else if (index === NAN_INDEX) {
+        entry[key] = NaN;
+      } else if (index === POS_INF_INDEX) {
+        entry[key] = Infinity;
+      } else if (index === NEG_INF_INDEX) {
+        entry[key] = -Infinity;
+      } else {
+        throw new Error("invalid ARSON index: " + index);
+      }
+
+    } else {
+      // Non-negative indexes refer to normal table values.
+      entry[key] = table[index];
+    }
+  });
+
+  return entry;
 }
 
 exports.encode = exports.stringify = encode;

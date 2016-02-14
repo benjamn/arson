@@ -4,11 +4,21 @@ var arson = require("../index.js");
 describe("encoding and decoding", function () {
   it("should work with primitive values", function () {
     function check(value) {
-      assert.deepEqual(value, arson.decode(arson.encode(value)));
+      var enc = arson.encode(value);
+      var dec = arson.decode(enc);
+
+      if (isNaN(value)) {
+        assert.ok(isNaN(dec));
+      } else {
+        assert.deepEqual(value, dec);
+      }
     }
 
     check(0);
     check(1234);
+    check(NaN);
+    check(Infinity);
+    check(-Infinity);
     check(true);
     check(false);
     check("asdf");
