@@ -3,12 +3,35 @@ var ARRAY_HOLE_INDEX = -2;
 var NAN_INDEX = -3;
 var POS_INF_INDEX = -4;
 var NEG_INF_INDEX = -5;
+var customTypes = Object.create(null);
 
+exports.registerType = function (typeName, handlers) {
+  function check(methodName) {
+    if (typeof handlers[methodName] !== "function") {
+      throw new Error(
+        "second argument to ARSON.registerType(" +
+          JSON.stringify(typeName) + ", ...) " +
+          "must be an object with a " + methodName + " method"
+      );
+    }
+  }
+
+  check("deconstruct");
+  check("reconstruct");
+
+  customTypes[typeName] = handlers;
+
+  return exports;
+};
+
+require("./custom.js");
+
+exports.encode = exports.stringify =
 function encode(value) {
-  return JSON.stringify(tabulate(value));
+  return JSON.stringify(toTable(value));
 }
 
-function tabulate(value) {
+function toTable(value) {
   var values = [];
   var indexMap = typeof Map === "function" && new Map;
 
@@ -54,7 +77,6 @@ function tabulate(value) {
 
     if (value && typeof value === "object") {
       var keys = Object.keys(value);
-      var ctor = value.constructor;
 
       if (Array.isArray(value)) {
         result = Array(value.length);
@@ -67,46 +89,23 @@ function tabulate(value) {
           }
         }
 
-      } else if (ctor &&
-                 ctor.name !== "Object" &&
-                 typeof global[ctor.name] === "function") {
-        var cname = ctor.name;
-
-        // If value is not a plain Object, but something exotic like a
-        // Date or a RegExp, then we serialize it as an array with the
-        // String value.constructor.name as its first element. These
-        // arrays can be distinguished from normal arrays, because all
-        // other non-empty arrays will be serialized with a numeric value
-        // as their first element.
-        result = [cname];
-
-        // Any elements following the first element of the result array
-        // represent arguments that should be passed to the constructor
-        // when the serialized object is deserialized.
-        if (cname === "Date") {
-          // If result is ["Date", '2016-01-30T01:50:19.287Z'], then
-          // arson.decode will deserialize the value by evaluating the
-          // expression new global.Date('2016-01-30T01:50:19.287Z').
-          result.push(value.toJSON());
-
-        } else if (cname === "RegExp") {
-          result.push(value.source);
-
-          var flags = "";
-          if (value.ignoreCase) flags += "i";
-          if (value.multiline) flags += "m";
-          if (value.global) flags += "g";
-          if (flags) {
-            result.push(flags);
+      } else {
+        for (var typeName in customTypes) {
+          // If value is not a plain Object, but something exotic like a
+          // Date or a RegExp, serialize it as an array with typeName as
+          // its first element. These arrays can be distinguished from
+          // normal arrays, because all other non-empty arrays will be
+          // serialized with a numeric value as their first element.
+          var args = customTypes[typeName].deconstruct(value);
+          if (args) {
+            for (var i = 0; i < args.length; ++i) {
+              args[i] = getIndex(args[i]);
+            }
+            args.unshift(typeName);
+            return args;
           }
-
-        } else if (cname === "Buffer") {
-          result.push(value.toString("base64"), "base64");
         }
 
-        return result;
-
-      } else {
         result = {};
       }
 
@@ -137,73 +136,136 @@ function tabulate(value) {
   return table;
 }
 
+exports.decode = exports.parse =
 function decode(encoding) {
-  var table = JSON.parse(encoding);
+  return fromTable(JSON.parse(encoding));
+}
+
+function fromTable(table) {
   if (typeof table === "number" && table < 0) {
-    return handleEntry([table])[0];
+    return getValueWithoutCache(table);
   }
 
-  var objectEntries = [];
+  var getValueCache = new Array(table.length);
 
-  // First pass: make sure all exotic object arrays are deserialized fist,
-  // and keep track of all plain object entries for later.
-  table.forEach(function (entry, index) {
-    if (entry && typeof entry === "object") {
-      if (Array.isArray(entry) &&
-          typeof entry[0] === "string") {
-        var ctor = global[entry[0]];
-        entry[0] = null;
-        table[index] = new (ctor.bind.apply(ctor, entry));
-      } else {
-        objectEntries.push(entry);
+  function getValue(index) {
+    return index in getValueCache
+      ? getValueCache[index]
+      : getValueCache[index] = getValueWithoutCache(index);
+  }
+
+  function getValueWithoutCache(index) {
+    if (index < 0) {
+      if (index === UNDEFINED_INDEX) {
+        return;
       }
 
-      // Will be deserialized in the next loop.
-      objectEntries.push(entry);
+      if (index === ARRAY_HOLE_INDEX) {
+        // Never reached because handled specially below.
+        return;
+      }
+
+      if (index === NAN_INDEX) {
+        return NaN;
+      }
+
+      if (index === POS_INF_INDEX) {
+        return Infinity;
+      }
+
+      if (index === NEG_INF_INDEX) {
+        return -Infinity;
+      }
+
+      throw new Error("invalid ARSON index: " + index);
     }
+
+    var entry = table[index];
+
+    if (entry && typeof entry === "object") {
+      if (Array.isArray(entry)) {
+        var elem0 = entry[0];
+        if (typeof elem0 === "string" && elem0 in customTypes) {
+          var rec = customTypes[elem0].reconstruct;
+          var empty = rec();
+          if (empty) {
+            // If the reconstruct handler returns an object, treat it as
+            // an empty instance of the desired type, and schedule it to
+            // be filled in later. This two-stage process allows exotic
+            // container objects to contain themselves.
+            containers.push({
+              reconstruct: rec,
+              empty: empty,
+              argIndexes: entry.slice(1)
+            });
+          }
+
+          // If the reconstruct handler returned a falsy value, then we
+          // assume none of its arguments refer to exotic containers, so
+          // we can reconstruct the object immediately. Examples: Buffer,
+          // Date, RegExp.
+          return table[index] = empty || rec(entry.slice(1).map(getValue));
+        }
+      }
+
+      // Here entry is already the correct array or object reference for
+      // this index, but its values are still indexes that will need to be
+      // resolved later.
+      objects.push(entry);
+    }
+
+    return entry;
+  }
+
+  var containers = [];
+  var objects = [];
+
+  // First pass: make sure all exotic objects are deserialized fist, and
+  // keep track of all plain object entries for later.
+  table.forEach(function (entry, i) {
+    getValue(i);
   });
 
-  // Second pass: deserialize all the plain object entries found above.
-  objectEntries.forEach(handleEntry, table);
+  // Second pass: now that we have final object references for all exotic
+  // objects, we can safely resolve argument indexes for the empty ones.
+  containers.forEach(function (c) {
+    c.args = c.argIndexes.map(getValue);
+  });
+
+  // Third pass: resolve value indexes for ordinary arrays and objects.
+  objects.forEach(function (obj) {
+    Object.keys(obj).forEach(function (key) {
+      var index = obj[key];
+
+      if (typeof index !== "number") {
+        // Leave non-numeric indexes untouched.
+        return;
+      }
+
+      if (index < 0) {
+        if (index === ARRAY_HOLE_INDEX) {
+          // Array holes have to be handled specially here, since getValue
+          // does not have a reference to obj.
+          delete obj[key];
+          return;
+        }
+
+        // This recursion is guaranteed not to add more objects, because
+        // we know the index is negative.
+        obj[key] = getValue(index);
+
+      } else {
+        // Non-negative indexes refer to normal table values.
+        obj[key] = table[index];
+      }
+    });
+  });
+
+  // Fourth pass: all possible object references have been established, so
+  // we can finally initialize the empty container objects.
+  containers.forEach(function (c) {
+    c.reconstruct.call(c.empty, c.args);
+  });
 
   return table[0];
 }
-
-function handleEntry(entry) {
-  var table = this;
-
-  Object.keys(entry).forEach(function (key) {
-    var index = entry[key];
-
-    if (typeof index !== "number") {
-      // Leave non-numeric indexes untouched.
-      return;
-    }
-
-    // Negative indexes have special meaning, but UNDEFINED_INDEX can be
-    // handled the same as non-negative indexes, because table[-1] is
-    // always undefined.
-    if (index < -1) {
-      if (index === ARRAY_HOLE_INDEX) {
-        delete entry[key];
-      } else if (index === NAN_INDEX) {
-        entry[key] = NaN;
-      } else if (index === POS_INF_INDEX) {
-        entry[key] = Infinity;
-      } else if (index === NEG_INF_INDEX) {
-        entry[key] = -Infinity;
-      } else {
-        throw new Error("invalid ARSON index: " + index);
-      }
-
-    } else {
-      // Non-negative indexes refer to normal table values.
-      entry[key] = table[index];
-    }
-  });
-
-  return entry;
-}
-
-exports.encode = exports.stringify = encode;
-exports.decode = exports.parse = decode;

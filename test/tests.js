@@ -28,7 +28,7 @@ describe("encoding and decoding", function () {
     check({ foo: void 0 });
   });
 
-  it("should work with exotic object types", function () {
+  it("should work with RegExp objects", function () {
     var r1 = /asdf/ig;
     var r2 = arson.decode(arson.encode(r1));
     assert.ok(r2 instanceof RegExp);
@@ -37,7 +37,9 @@ describe("encoding and decoding", function () {
     assert.strictEqual(r2.multiline, false);
     assert.strictEqual(r2.global, true);
     assert.ok(r2.test("xxx-asdf-yyy"));
+  });
 
+  it("should work with Date objects", function () {
     var d1 = new Date;
     var d2 = arson.decode(arson.encode(d1));
     assert.ok(d2 instanceof Date);
@@ -49,7 +51,9 @@ describe("encoding and decoding", function () {
     assert.strictEqual(+d1, +dObj.bar[1]);
     assert.strictEqual(dObj.foo, dObj.bar[0]);
     assert.strictEqual(dObj.foo, dObj.bar[1]);
+  });
 
+  it("should work with Buffer objects", function () {
     var b = new Buffer("asdf");
     var bb = arson.decode(arson.encode([b, b]));
     assert.strictEqual(bb[0], bb[1]);
