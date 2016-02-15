@@ -62,6 +62,7 @@ describe("encoding and decoding", function () {
   });
 
   typeof Map === "function" &&
+  typeof Array.from === "function" &&
   it("should work with Map objects", function () {
     var m1 = new Map;
     var value = { foo: 42 };
@@ -75,6 +76,7 @@ describe("encoding and decoding", function () {
   });
 
   typeof Set === "function" &&
+  typeof Array.from === "function" &&
   it("should work with Set objects", function () {
     var s1 = new Set;
     s1.add(s1);

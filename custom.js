@@ -61,6 +61,7 @@ arson.registerType("RegExp", {
 });
 
 typeof Set === "function" &&
+typeof Array.from === "function" &&
 arson.registerType("Set", {
   deconstruct: function (set) {
     if (toString.call(set) === setTag) {
@@ -78,6 +79,7 @@ arson.registerType("Set", {
 });
 
 typeof Map === "function" &&
+typeof Array.from === "function" &&
 arson.registerType("Map", {
   deconstruct: function (map) {
     if (toString.call(map) === mapTag) {
