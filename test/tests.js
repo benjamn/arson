@@ -74,7 +74,7 @@ describe("encoding and decoding", function () {
     assert.strictEqual(m2.get(m2), "self");
   });
 
-  typeof Map === "function" &&
+  typeof Set === "function" &&
   it("should work with Set objects", function () {
     var s1 = new Set;
     s1.add(s1);
