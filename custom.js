@@ -59,3 +59,39 @@ arson.registerType("RegExp", {
     return args && new RegExp(args[0], args[1]);
   }
 });
+
+typeof Set === "function" &&
+arson.registerType("Set", {
+  deconstruct: function (set) {
+    if (toString.call(set) === setTag) {
+      return Array.from(set);
+    }
+  },
+
+  reconstruct: function (values) {
+    if (values) {
+      values.forEach(this.add, this);
+    } else {
+      return new Set;
+    }
+  }
+});
+
+typeof Map === "function" &&
+arson.registerType("Map", {
+  deconstruct: function (map) {
+    if (toString.call(map) === mapTag) {
+      return Array.from(map);
+    }
+  },
+
+  reconstruct: function (entries) {
+    if (entries) {
+      entries.forEach(function (entry) {
+        this.set(entry[0], entry[1]);
+      }, this);
+    } else {
+      return new Map;
+    }
+  }
+});

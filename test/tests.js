@@ -61,6 +61,36 @@ describe("encoding and decoding", function () {
     assert.strictEqual(bb[0].toString("utf8"), "asdf");
   });
 
+  it("should work with Map objects", function () {
+    var m1 = new Map;
+    var value = { foo: 42 };
+    m1.set(1234, value);
+    m1.set(value, m1);
+    m1.set(m1, "self");
+    assert.strictEqual(m1.get(m1.get(1234)), m1);
+    var m2 = arson.decode(arson.encode(m1));
+    assert.strictEqual(m2.get(m2.get(1234)), m2);
+    assert.strictEqual(m2.get(m2), "self");
+  });
+
+  it("should work with Set objects", function () {
+    var s1 = new Set;
+    s1.add(s1);
+
+    var s2 = arson.decode(arson.encode(s1));
+    assert.strictEqual(Array.from(s2)[0], s2);
+    s2.add(s1);
+
+    var s3 = arson.decode(arson.encode(s2));
+    var elems = Array.from(s3);
+
+    assert.strictEqual(elems.length, 2);
+    assert.notStrictEqual(elems[0], elems[1]);
+    elems.forEach(function (s) {
+      assert.ok(s.has(s));
+    });
+  });
+
   it("should work for sparse arrays", function () {
     function check(array) {
       assert.deepEqual(array, arson.decode(arson.encode(array)));
