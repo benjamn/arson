@@ -72,10 +72,82 @@ It can also encode array *holes*:
 Mon Feb 01 2016 19:25:36 GMT-0500 (EST)
 ```
 
-and `RegExp`s:
+`RegExp`s:
 ```js
 > ARSON.encode(/asdf/img)
 '[["RegExp","asdf","img"]]'
 > ARSON.decode(_)
 /asdf/gim
+```
+
+`Set`s:
+```js
+> s = new Set
+Set {}
+> s.add(s)
+Set { Set { Set { [Object] } } }
+> ARSON.encode(s)
+'[["Set",0]]'
+> ARSON.decode(_)
+Set { Set { Set { [Object] } } }
+> _.has(_)
+true
+```
+
+and `Map`s:
+```js
+> m = new Map
+Map {}
+> m.set(1234, m)
+Map { 1234 => Map { 1234 => Map { 1234 => [Object] } } }
+> m.set(m, 5678)
+Map {
+  1234 => Map {
+    1234 => Map {
+      1234 => [Object],
+      [Object] => 5678
+    },
+    Map {
+      1234 => [Object],
+      [Object] => 5678
+    } => 5678
+  },
+  Map {
+    1234 => Map {
+      1234 => [Object],
+      [Object] => 5678
+    },
+    Map {
+      1234 => [Object],
+      [Object] => 5678
+    } => 5678
+  } => 5678
+}
+> ARSON.encode(m)
+'[["Map",1,2],[3,0],[0,4],1234,5678]'
+> ARSON.decode(_)
+Map {
+  1234 => Map {
+    1234 => Map {
+      1234 => [Object],
+      [Object] => 5678
+    },
+    Map {
+      1234 => [Object],
+      [Object] => 5678
+    } => 5678
+  },
+  Map {
+    1234 => Map {
+      1234 => [Object],
+      [Object] => 5678
+    },
+    Map {
+      1234 => [Object],
+      [Object] => 5678
+    } => 5678
+  } => 5678
+}
+> _.get(_.get(1234)) === 5678
+true
 ```
