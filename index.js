@@ -78,7 +78,10 @@ function toTable(value) {
     if (value && typeof value === "object") {
       var keys = Object.keys(value);
 
-      if (Array.isArray(value)) {
+      if (isPlainObject(value)) {
+        result = {};
+
+      } else if (Array.isArray(value)) {
         result = Array(value.length);
         var len = value.length;
         if (len > keys.length) {
@@ -134,6 +137,17 @@ function toTable(value) {
   }
 
   return table;
+}
+
+function isPlainObject(value) {
+  var isObject = value && typeof value === "object";
+  if (isObject) {
+    var proto = Object.getPrototypeOf
+      ? Object.getPrototypeOf(value)
+      : value.__proto__;
+    return proto === Object.prototype;
+  }
+  return false;
 }
 
 exports.decode = exports.parse =
