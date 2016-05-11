@@ -6,6 +6,8 @@ var mapTag = "[object Map]";
 
 var arson = require("./index.js");
 
+typeof Buffer === "function" &&
+typeof Buffer.isBuffer === "function" &&
 arson.registerType("Buffer", {
   deconstruct: function (buf) {
     return Buffer.isBuffer(buf) && [buf.toString("base64"), "base64"];
