@@ -31,6 +31,23 @@ function encode(value) {
   return JSON.stringify(toTable(value));
 }
 
+// This array will grow as needed so that we can slice arrays filled with
+// ARRAY_HOLE_INDEX from it.
+var HOLY_ARRAY = [];
+
+// Returns an array of the given length filled with ARRAY_HOLE_INDEX.
+function getArrayOfHoles(length) {
+  var holyLen = HOLY_ARRAY.length;
+  if (length > holyLen) {
+    HOLY_ARRAY.length = length;
+    for (var i = holyLen; i < length; ++i) {
+      HOLY_ARRAY[i] = ARRAY_HOLE_INDEX;
+    }
+  }
+
+  return HOLY_ARRAY.slice(0, length);
+}
+
 function toTable(value) {
   var values = [];
   var getIndex = makeGetIndexFunction(values);
@@ -45,15 +62,7 @@ function toTable(value) {
         result = {};
 
       } else if (Array.isArray(value)) {
-        result = Array(value.length);
-        var len = value.length;
-        if (len > keys.length) {
-          // The array has holes, so make sure we fill them with the
-          // ARRAY_HOLE_INDEX constant.
-          for (var i = 0; i < len; ++i) {
-            result[i] = ARRAY_HOLE_INDEX;
-          }
-        }
+        result = getArrayOfHoles(value.length);
 
       } else {
         for (var typeName in customTypes) {
