@@ -1,5 +1,7 @@
 # arson [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/benjamn/arson.svg)](https://greenkeeper.io/)
+
 ### *AR*bitrary *S*tructured *O*bject *N*otation
 
 _Not to be confused with the criminal act of deliberately setting fire to property!_
