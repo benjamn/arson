@@ -33,44 +33,7 @@ function encode(value) {
 
 function toTable(value) {
   var values = [];
-  var indexMap = typeof Map === "function" && new Map;
-
-  function getIndex(value) {
-    switch (typeof value) {
-    case "undefined":
-      return UNDEFINED_INDEX;
-
-    case "number":
-      if (isNaN(value)) {
-        return NAN_INDEX;
-      }
-
-      if (! isFinite(value)) {
-        return value < 0 ? NEG_INF_INDEX : POS_INF_INDEX;
-      }
-
-      // fall through...
-    }
-
-    var index;
-
-    if (indexMap) {
-      // If we have Map, use it instead of values.indexOf to accelerate
-      // object lookups.
-      index = indexMap.get(value);
-      if (typeof index === "undefined") {
-        index = values.push(value) - 1;
-        indexMap.set(value, index);
-      }
-    } else {
-      index = values.indexOf(value);
-      if (index < 0) {
-        index = values.push(value) - 1;
-      }
-    }
-
-    return index;
-  }
+  var getIndex = makeGetIndexFunction(values);
 
   function copy(value) {
     var result = value;
@@ -148,6 +111,47 @@ function isPlainObject(value) {
     return proto === Object.prototype;
   }
   return false;
+}
+
+function makeGetIndexFunction(values) {
+  var indexMap = typeof Map === "function" && new Map;
+
+  return function getIndex(value) {
+    switch (typeof value) {
+    case "undefined":
+      return UNDEFINED_INDEX;
+
+    case "number":
+      if (isNaN(value)) {
+        return NAN_INDEX;
+      }
+
+      if (! isFinite(value)) {
+        return value < 0 ? NEG_INF_INDEX : POS_INF_INDEX;
+      }
+
+      // fall through...
+    }
+
+    var index;
+
+    if (indexMap) {
+      // If we have Map, use it instead of values.indexOf to accelerate
+      // object lookups.
+      index = indexMap.get(value);
+      if (typeof index === "undefined") {
+        index = values.push(value) - 1;
+        indexMap.set(value, index);
+      }
+    } else {
+      index = values.indexOf(value);
+      if (index < 0) {
+        index = values.push(value) - 1;
+      }
+    }
+
+    return index;
+  };
 }
 
 exports.decode = exports.parse =
