@@ -1,6 +1,4 @@
-# arson [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson)
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/benjamn/arson.svg)](https://greenkeeper.io/)
+# arson [![Build Status](https://travis-ci.org/benjamn/arson.svg?branch=master)](https://travis-ci.org/benjamn/arson) [![Greenkeeper badge](https://badges.greenkeeper.io/benjamn/arson.svg)](https://greenkeeper.io/)
 
 ### *AR*bitrary *S*tructured *O*bject *N*otation
 
