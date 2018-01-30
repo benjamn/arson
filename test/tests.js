@@ -128,4 +128,29 @@ describe("encoding and decoding", function () {
     var copy = arson.decode(arson.encode(global));
     assert.strictEqual(copy.global, copy);
   });
+
+  it("should preserve identity of immutable tuples", function () {
+    var tuple = require("immutable-tuple").tuple;
+
+    arson.registerType("tuple", {
+      deconstruct: function (t) {
+        if (tuple.isTuple(t)) {
+          return Array.from(t);
+        }
+      },
+
+      reconstruct: function (entries) {
+        if (entries) {
+          return tuple.apply(null, entries);
+        }
+      }
+    });
+
+    var t1 = tuple(1, 2, tuple(3, 4), 5);
+    var input = ["asdf", t1, true];
+    var output = arson.decode(arson.encode(input));
+
+    assert.notStrictEqual(input, output);
+    assert.strictEqual(output[1], t1);
+  });
 });
