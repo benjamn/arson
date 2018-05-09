@@ -18,7 +18,7 @@
     "debug": "node ./node_modules/mocha/bin/mocha --debug-brk --reporter spec --full-trace"
   },
   "devDependencies": {
-    "mocha": "~5.0.0",
+    "mocha": "~5.1.1",
     "immutable-tuple": "^0.4.2"
   }
 }
