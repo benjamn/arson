@@ -6,6 +6,39 @@ var mapTag = "[object Map]";
 
 var arson = require("./index.js");
 
+function isPlainObject(value) {
+  var isObject = value && typeof value === "object";
+  if (isObject) {
+    var proto = Object.getPrototypeOf
+      ? Object.getPrototypeOf(value)
+      : value.__proto__;
+    return proto === Object.prototype;
+  }
+  return false;
+}
+
+arson.registerType("o", {
+  deconstruct: function (obj, tolerant) {
+    if (tolerant || isPlainObject(obj)) {
+      var props = [];
+      Object.keys(obj).forEach(function (key) {
+        props.push(key, obj[key]);
+      });
+      return props;
+    }
+  },
+
+  reconstruct: function (props) {
+    if (props) {
+      for (var i = 0; i < props.length; i += 2) {
+        this[props[i]] = props[i + 1];
+      }
+    } else {
+      return {};
+    }
+  }
+});
+
 typeof Buffer === "function" &&
 typeof Buffer.isBuffer === "function" &&
 arson.registerType("Buffer", {

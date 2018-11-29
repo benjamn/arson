@@ -52,41 +52,46 @@ function toTable(value) {
   var values = [];
   var getIndex = makeGetIndexFunction(values);
 
+  function asType(value, typeName, tolerant) {
+    // If value is not a plain Object, but something exotic like a
+    // Date or a RegExp, serialize it as an array with typeName as
+    // its first element. These arrays can be distinguished from
+    // normal arrays, because all other non-empty arrays will be
+    // serialized with a numeric value as their first element.
+    var args = customTypes[typeName].deconstruct(value, tolerant);
+    if (args) {
+      args.forEach(function (arg, i) {
+        args[i] = getIndex(arg);
+      });
+      args.unshift(typeName);
+      return args;
+    }
+  }
+
   function copy(value) {
     var result = value;
 
     if (value && typeof value === "object") {
-      var keys = Object.keys(value);
-
-      if (isPlainObject(value)) {
-        result = {};
-
-      } else if (Array.isArray(value)) {
+      if (Array.isArray(value)) {
         result = getArrayOfHoles(value.length);
 
-      } else {
-        for (var typeName in customTypes) {
-          // If value is not a plain Object, but something exotic like a
-          // Date or a RegExp, serialize it as an array with typeName as
-          // its first element. These arrays can be distinguished from
-          // normal arrays, because all other non-empty arrays will be
-          // serialized with a numeric value as their first element.
-          var args = customTypes[typeName].deconstruct(value);
-          if (args) {
-            for (var i = 0; i < args.length; ++i) {
-              args[i] = getIndex(args[i]);
-            }
-            args.unshift(typeName);
-            return args;
+        for (var i = 0; i < value.length; ++i) {
+          if (value.hasOwnProperty(i)) {
+            result[i] = getIndex(value[i]);
           }
         }
 
-        result = {};
+        return result;
       }
 
-      keys.forEach(function (key) {
-        result[key] = getIndex(value[key]);
-      });
+      for (var typeName in customTypes) {
+        var args = asType(value, typeName);
+        if (args) {
+          return args;
+        }
+      }
+
+      return asType(value, "o", true);
     }
 
     return result;
@@ -109,17 +114,6 @@ function toTable(value) {
   }
 
   return table;
-}
-
-function isPlainObject(value) {
-  var isObject = value && typeof value === "object";
-  if (isObject) {
-    var proto = Object.getPrototypeOf
-      ? Object.getPrototypeOf(value)
-      : value.__proto__;
-    return proto === Object.prototype;
-  }
-  return false;
 }
 
 function makeGetIndexFunction(values) {
